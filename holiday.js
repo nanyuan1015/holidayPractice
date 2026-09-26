@@ -1,0 +1,54 @@
+const products = [
+  { name: "芝士饼干", category: "零食", unitPrice: 12.44, quantity: 1 },
+  { name: "鱼肉薯条", category: "零食", unitPrice: 7.1, quantity: 2 },
+  { name: "咸蛋黄锅巴", category: "零食", unitPrice: 14.22, quantity: 1 },
+  { name: "膜片", category: "零食", unitPrice: 1.00, quantity: 1 },
+  { name: "芝士火鸡面", category: "零食", unitPrice: 5.2, quantity: 4 },
+  { name: "薯条", category: "零食", unitPrice: 17.99, quantity: 1 },
+  { name: "薯片", category: "零食", unitPrice: 8.9, quantity: 2 },
+  { name: "炭烤腰果", category: "零食", unitPrice: 25.30, quantity: 1 },
+  { name: "麻薯", category: "零食", unitPrice: 10.70, quantity: 1 },
+  { name: "鲜花饼", category: "零食", unitPrice: 9.90, quantity: 1 }
+];
+const printReport = (productList) => {
+
+  const totalSpend = productList.reduce((sum, item) => {
+    return sum + item.unitPrice * item.quantity;
+  }, 0);
+
+  let mostExpensive = productList[0];
+  for (const prod of productList) {
+    if (prod.unitPrice > mostExpensive.unitPrice) {
+      mostExpensive = prod;
+    }
+  }
+
+  const categoryGroup = {};
+  productList.forEach(item => {
+    const cat = item.category;
+    if (categoryGroup[cat] === undefined) {
+      categoryGroup[cat] = 0;
+    }
+    categoryGroup[cat] += item.unitPrice * item.quantity;
+  });
+
+  const avgUnitPrice = productList.reduce((acc, p) => acc + p.unitPrice, 0) / productList.length;
+
+  console.log("==========商品清单报告==========");
+  productList.forEach(good => {
+    const line = `商品：${good.name} | 类别：${good.category} | 单价：${good.unitPrice}元 | 数量：${good.quantity} | 小计：${(good.unitPrice * good.quantity).toFixed(2)}元`;
+    console.log(line);
+  });
+
+  console.log("\n==========统计汇总==========");
+  console.log(`总花费：${totalSpend.toFixed(2)} 元`);
+  console.log(`最贵商品：${mostExpensive.name}，单价 ${mostExpensive.unitPrice} 元`);
+  console.log(`平均单价：${avgUnitPrice.toFixed(2)} 元`);
+
+  console.log("\n-----分类小计-----");
+  for (const key in categoryGroup) {
+    console.log(`${key}：${categoryGroup[key].toFixed(2)} 元`);
+  }
+};
+
+printReport(products);

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>零食商品卡片</title>
+    <!-- Vue3 CDN引入 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <style>
+        .container{ padding:20px; display:grid; grid-template-columns: repeat(3,1fr); gap:16px; }
+        .card{ border:1px solid #ccc; padding:12px; border-radius:8px; }
+        .card img{ width:100%; height:180px; object-fit:cover; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <h2>零食商品列表</h2>
+        <div class="container">
+            <!-- v-for遍历ref数组，:key必写，渲染商品卡片 -->
+            <div class="card" v-for="(item,index) in productList" :key="index">
+                <!-- 修改为png后缀，匹配你的图片1.png~10.png -->
+                <img :src="`${index+1}.png`" alt="零食图">
+                <h4>{{item.name}}</h4>
+                <p>类别：{{item.category}}</p>
+                <p>单价：{{item.unitPrice}}元</p>
+                <p>数量：{{item.quantity}}</p>
+                <p>小计：{{(item.unitPrice*item.quantity).toFixed(2)}}元</p>
+            </div>
+        </div>
+    </div>
+
+<script>
+const { createApp, ref } = Vue;
+
+createApp({
+    setup(){
+        // ✅ref响应式数组，和js作业10条零食数据保持一致
+        const productList = ref([
+            { name: "芝士饼干", category: "零食", unitPrice: 12.44, quantity: 1 },
+            { name: "鱼肉薯条", category: "零食", unitPrice: 7.1, quantity: 2 },
+            { name: "咸蛋黄锅巴", category: "零食", unitPrice: 14.22, quantity: 1 },
+            { name: "膜片", category: "零食", unitPrice: 1.00, quantity: 1 },
+            { name: "芝士火鸡面", category: "零食", unitPrice: 5.2, quantity: 4 },
+            { name: "薯条", category: "零食", unitPrice: 17.99, quantity: 1 },
+            { name: "薯片", category: "零食", unitPrice: 8.9, quantity: 2 },
+            { name: "炭烤腰果", category: "零食", unitPrice: 25.30, quantity: 1 },
+            { name: "麻薯", category: "零食", unitPrice: 10.70, quantity: 1 },
+            { name: "鲜花饼", category: "零食", unitPrice: 9.90, quantity: 1 }
+        ])
+        return { productList }
+    }
+}).mount('#app')
+</script>
+</body>
+</html>

@@ -2,22 +2,51 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>零食商品卡片</title>
-    <!-- Vue3 CDN引入 -->
+    <title>零食商品卡片 案例一</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <style>
-        .container{ padding:20px; display:grid; grid-template-columns: repeat(3,1fr); gap:16px; }
-        .card{ border:1px solid #ccc; padding:12px; border-radius:8px; }
-        .card img{ width:100%; height:180px; object-fit:cover; }
+        .toolbar {
+            margin-bottom:20px;
+        }
+        .container{
+            padding:20px;
+            display:grid;
+            grid-template-columns: repeat(3,1fr);
+            gap:16px;
+        }
+        .card{
+            border:1px solid #ccc;
+            padding:12px;
+            border-radius:8px;
+        }
+        .card img{
+            width:100%;
+            height:180px;
+            object-fit:cover;
+        }
+        .tip-empty {
+            color:#999;
+            font-size:18px;
+            padding:10px 20px;
+        }
     </style>
 </head>
 <body>
     <div id="app">
-        <h2>零食商品列表</h2>
+        <h2>零食商品列表【案例一：关键词搜索过滤】</h2>
+        <div class="toolbar">
+            <input v-model="keyword" placeholder="输入商品名称搜索"/>
+            <p v-show="keyword">共{{ filteredProducts.length }}件结果</p>
+        </div>
+
+        <div class="tip-empty" v-if="filteredProducts.length === 0">没有找到相关产品</div>
+
         <div class="container">
-            <!-- v-for遍历ref数组，:key必写，渲染商品卡片 -->
-            <div class="card" v-for="(item,index) in productList" :key="index">
-                <!-- 修改为png后缀，匹配你的图片1.png~10.png -->
+            <div
+                class="card"
+                v-for="(item,index) in filteredProducts"
+                :key="index"
+            >
                 <img :src="`${index+1}.png`" alt="零食图">
                 <h4>{{item.name}}</h4>
                 <p>类别：{{item.category}}</p>
@@ -27,26 +56,75 @@
             </div>
         </div>
     </div>
-
 <script>
-const { createApp, ref } = Vue;
+const { createApp, ref, computed } = Vue;
+
+const rawProducts = [
+  { name: "芝士饼干", category: "零食", unitPrice: 12.44, quantity: 1 },
+  { name: "鱼肉薯条", category: "零食", unitPrice: 7.1, quantity: 2 },
+  { name: "咸蛋黄锅巴", category: "零食", unitPrice: 14.22, quantity: 1 },
+  { name: "膜片", category: "零食", unitPrice: 1.00, quantity: 1 },
+  { name: "芝士火鸡面", category: "零食", unitPrice: 5.2, quantity: 4 },
+  { name: "薯条", category: "零食", unitPrice: 17.99, quantity: 1 },
+  { name: "薯片", category: "零食", unitPrice: 8.9, quantity: 2 },
+  { name: "炭烤腰果", category: "零食", unitPrice: 25.30, quantity: 1 },
+  { name: "麻薯", category: "零食", unitPrice: 10.70, quantity: 1 },
+  { name: "鲜花饼", category: "零食", unitPrice: 9.90, quantity: 1 }
+];
+
+//控制台打印报告，保留
+const printReport = (productList) => {
+  const totalSpend = productList.reduce((sum, item) => {
+    return sum + item.unitPrice * item.quantity;
+  }, 0);
+  let mostExpensive = productList[0];
+  for (const prod of productList) {
+    if (prod.unitPrice > mostExpensive.unitPrice) {
+      mostExpensive = prod;
+    }
+  }
+  const categoryGroup = {};
+  productList.forEach(item => {
+    const cat = item.category;
+    if (categoryGroup[cat] === undefined) {
+      categoryGroup[cat] = 0;
+    }
+    categoryGroup[cat] += item.unitPrice * item.quantity;
+  });
+  const avgUnitPrice = productList.reduce((acc, p) => acc + p.unitPrice, 0) / productList.length;
+  console.log("==========商品清单报告==========");
+  productList.forEach(good => {
+    const line = `商品：${good.name} | 类别：${good.category} | 单价：${good.unitPrice}元 | 数量：${good.quantity} | 小计：${(good.unitPrice * good.quantity).toFixed(2)}元`;
+    console.log(line);
+  });
+  console.log("\n==========统计汇总==========");
+  console.log(`总花费：${totalSpend.toFixed(2)} 元`);
+  console.log(`最贵商品：${mostExpensive.name}，单价 ${mostExpensive.unitPrice} 元`);
+  console.log(`平均单价：${avgUnitPrice.toFixed(2)} 元`);
+  console.log("\n-----分类小计-----");
+  for (const key in categoryGroup) {
+    console.log(`${key}：${categoryGroup[key].toFixed(2)} 元`);
+  }
+};
+printReport(rawProducts);
 
 createApp({
     setup(){
-        // ✅ref响应式数组，和js作业10条零食数据保持一致
-        const productList = ref([
-            { name: "芝士饼干", category: "零食", unitPrice: 12.44, quantity: 1 },
-            { name: "鱼肉薯条", category: "零食", unitPrice: 7.1, quantity: 2 },
-            { name: "咸蛋黄锅巴", category: "零食", unitPrice: 14.22, quantity: 1 },
-            { name: "膜片", category: "零食", unitPrice: 1.00, quantity: 1 },
-            { name: "芝士火鸡面", category: "零食", unitPrice: 5.2, quantity: 4 },
-            { name: "薯条", category: "零食", unitPrice: 17.99, quantity: 1 },
-            { name: "薯片", category: "零食", unitPrice: 8.9, quantity: 2 },
-            { name: "炭烤腰果", category: "零食", unitPrice: 25.30, quantity: 1 },
-            { name: "麻薯", category: "零食", unitPrice: 10.70, quantity: 1 },
-            { name: "鲜花饼", category: "零食", unitPrice: 9.90, quantity: 1 }
-        ])
-        return { productList }
+        const productList = ref(rawProducts);
+        //案例一：搜索关键词
+        const keyword = ref('');
+
+        //computed 计算过滤之后商品，不修改原数组
+        const filteredProducts = computed(()=>{
+            const kw = keyword.value.trim().toLowerCase();
+            return productList.value.filter(p=> p.name.toLowerCase().includes(kw))
+        })
+
+        return {
+            productList,
+            keyword,
+            filteredProducts
+        }
     }
 }).mount('#app')
 </script>

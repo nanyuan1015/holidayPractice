@@ -2,7 +2,6 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>零食商品卡片 案例三</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <style>
         .toolbar {
@@ -11,6 +10,10 @@
             gap:14px;
             align-items:center;
             flex-wrap:wrap;
+        }
+        .cart-text{
+            margin-left:auto;
+            font-weight:bold;
         }
         .container{
             padding:20px;
@@ -23,8 +26,9 @@
             padding:12px;
             border-radius:8px;
             cursor: pointer;
+            display:flex;
+            flex-direction:column;
         }
-        /* 卡片选中高亮 */
         .card.active{
             border:3px solid #2b78e4;
         }
@@ -32,6 +36,16 @@
             width:100%;
             height:180px;
             object-fit:cover;
+        }
+        .card-footer{
+            margin-top:auto;
+            margin-top:10px;
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+        }
+        button{
+            padding:4px 8px;
         }
         .tip-empty {
             color:#999;
@@ -42,9 +56,8 @@
 </head>
 <body>
     <div id="app">
-        <h2>零食商品列表【案例三：回车搜索、选中高亮与草稿暂存】</h2>
+        <h2>零食商品列表【案例三 + T4课后拓展】</h2>
         <div class="toolbar">
-            <!-- 移除v-model.lazy，回车事件手动赋值realKeyword -->
             <input
                 v-model.trim="inputKeyword"
                 @keyup.enter="confirmSearch"
@@ -62,13 +75,16 @@
             <label>
                 <input type="checkbox" v-model="isDesc">价格降序
             </label>
+            <!-- T4：清空筛选按钮 -->
+            <button @click="resetAllFilter">清空筛选</button>
+            <!-- T4：右上角购物车数量 -->
+            <div class="cart-text">购物车有 {{cartCount}} 件商品</div>
             <p v-show="realKeyword">共{{ filteredProducts.length }}件结果</p>
         </div>
 
         <div class="tip-empty" v-if="filteredProducts.length === 0">没有找到相关产品</div>
 
         <div class="container">
-            <!-- ✅使用item.id作为key，不要用index！图片读取item.img属性 -->
             <div
                 class="card"
                 :class="{active: selectedName === item.name}"
@@ -82,13 +98,17 @@
                 <p>单价：{{item.unitPrice}}元</p>
                 <p>数量：{{item.quantity}}</p>
                 <p>小计：{{(item.unitPrice*item.quantity).toFixed(2)}}元</p>
+                <div class="card-footer">
+                    <span></span>
+                    <!-- stop！阻止点击按钮触发卡片选中高亮 -->
+                    <button @click.stop="addToCart">加入购物车</button>
+                </div>
             </div>
         </div>
     </div>
 <script>
 const { createApp, ref, computed, watch } = Vue;
 
-// ✅每个商品新增id、img字段，图片与商品绑定，不再依赖数组下标
 const rawProducts = [
   { id:1, name: "芝士饼干", category: "零食", unitPrice: 12.44, quantity: 1, img:"1.png" },
   { id:2, name: "鱼肉薯条", category: "零食", unitPrice: 7.1, quantity: 2, img:"2.png" },
@@ -138,7 +158,6 @@ const printReport = (productList) => {
 };
 printReport(rawProducts);
 
-//模拟composable封装过滤排序逻辑（延续案例二）
 function getFilterProductList(list, keyword, category, priceMax, isDesc){
     let arr = [...list];
     const kw = keyword.trim().toLowerCase();
@@ -158,18 +177,16 @@ function getFilterProductList(list, keyword, category, priceMax, isDesc){
 createApp({
     setup(){
         const productList = ref(rawProducts);
-        //输入框临时文本
         const inputKeyword = ref('');
-        //真正用于过滤的关键词（回车才赋值）
         const realKeyword = ref('');
-
         const category = ref('all');
         const priceMax = ref(30);
         const isDesc = ref(false);
-        //选中卡片名称，用于高亮
         const selectedName = ref(null);
+        // T4 购物车计数
+        const cartCount = ref(0);
 
-        //读取 localStorage，页面初始化恢复草稿状态
+        //读取本地存储，多读取cartCount
         const storageStr = localStorage.getItem("snackCase3");
         if(storageStr){
             const obj = JSON.parse(storageStr);
@@ -179,16 +196,30 @@ createApp({
             priceMax.value = obj.priceMax ?? 30;
             isDesc.value = obj.isDesc ?? false;
             selectedName.value = obj.selectedName ?? null;
+            cartCount.value = obj.cartCount ?? 0;
         }
 
-        //回车确认搜索
         const confirmSearch = ()=>{
             realKeyword.value = inputKeyword.value.trim();
         }
 
-        //卡片点击切换选中
         const handleCardClick = (item)=>{
             selectedName.value = selectedName.value === item.name ? null : item.name;
+        }
+
+        //T4：加入购物车
+        const addToCart = ()=>{
+            cartCount.value +=1;
+        }
+
+        //T4：清空全部筛选
+        const resetAllFilter = ()=>{
+            inputKeyword.value = '';
+            realKeyword.value = '';
+            category.value = 'all';
+            priceMax.value = 30;
+            isDesc.value = false;
+            selectedName.value = null;
         }
 
         const filteredProducts = computed(()=>{
@@ -201,15 +232,16 @@ createApp({
             )
         })
 
-        //watch侦听全部筛选状态，保存到localStorage草稿暂存
-        watch([inputKeyword, realKeyword, category, priceMax, isDesc, selectedName], ()=>{
+        //保存时新增cartCount
+        watch([inputKeyword, realKeyword, category, priceMax, isDesc, selectedName, cartCount], ()=>{
             const saveData = {
                 inputKeyword: inputKeyword.value,
                 realKeyword: realKeyword.value,
                 category: category.value,
                 priceMax: priceMax.value,
                 isDesc: isDesc.value,
-                selectedName: selectedName.value
+                selectedName: selectedName.value,
+                cartCount: cartCount.value
             }
             localStorage.setItem("snackCase3", JSON.stringify(saveData));
         })
@@ -223,7 +255,10 @@ createApp({
             selectedName,
             filteredProducts,
             confirmSearch,
-            handleCardClick
+            handleCardClick,
+            cartCount,
+            addToCart,
+            resetAllFilter
         }
     }
 }).mount('#app')

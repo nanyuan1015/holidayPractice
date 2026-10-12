@@ -2,11 +2,15 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>零食商品卡片 案例一</title>
+    <title>零食商品卡片 案例二</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <style>
         .toolbar {
             margin-bottom:20px;
+            display:flex;
+            gap:14px;
+            align-items:center;
+            flex-wrap:wrap;
         }
         .container{
             padding:20px;
@@ -33,9 +37,27 @@
 </head>
 <body>
     <div id="app">
-        <h2>零食商品列表【案例一：关键词搜索过滤】</h2>
+        <h2>零食商品列表【案例二：类别、价格过滤与排序】</h2>
         <div class="toolbar">
             <input v-model="keyword" placeholder="输入商品名称搜索"/>
+
+            <!--分类下拉 -->
+            <select v-model="category">
+                <option value="all">全部分类</option>
+                <option value="零食">零食</option>
+            </select>
+
+            <!--价格上限滑块 -->
+            <label>
+                价格上限：
+                <input type="range" min="0" max="30" step="0.5" v-model.number="priceMax">
+                <span>{{ priceMax >=30 ? '不限' : priceMax }}</span>
+            </label>
+
+            <label>
+                <input type="checkbox" v-model="isDesc">价格降序
+            </label>
+
             <p v-show="keyword">共{{ filteredProducts.length }}件结果</p>
         </div>
 
@@ -72,7 +94,7 @@ const rawProducts = [
   { name: "鲜花饼", category: "零食", unitPrice: 9.90, quantity: 1 }
 ];
 
-//控制台打印报告，保留
+//打印报告函数
 const printReport = (productList) => {
   const totalSpend = productList.reduce((sum, item) => {
     return sum + item.unitPrice * item.quantity;
@@ -108,21 +130,53 @@ const printReport = (productList) => {
 };
 printReport(rawProducts);
 
+// 📌模拟composable：封装过滤排序逻辑（对应老师useProductFilter）
+function getFilterProductList(list, keyword, category, priceMax, isDesc){
+    //拷贝原数组，不污染原始数据
+    let arr = [...list];
+    //关键词过滤
+    const kw = keyword.trim().toLowerCase();
+    if(kw){
+        arr = arr.filter(p=> p.name.toLowerCase().includes(kw))
+    }
+    //分类过滤
+    if(category !== 'all'){
+        arr = arr.filter(p=> p.category === category)
+    }
+    //价格上限过滤
+    arr = arr.filter(p=> p.unitPrice <= priceMax);
+    //排序
+    arr.sort((a,b)=>{
+        return isDesc ? b.unitPrice - a.unitPrice : a.unitPrice - b.unitPrice
+    })
+    return arr;
+}
+
 createApp({
     setup(){
         const productList = ref(rawProducts);
-        //案例一：搜索关键词
+        //筛选状态
         const keyword = ref('');
+        const category = ref('all');
+        const priceMax = ref(30);
+        const isDesc = ref(false);
 
-        //computed 计算过滤之后商品，不修改原数组
         const filteredProducts = computed(()=>{
-            const kw = keyword.value.trim().toLowerCase();
-            return productList.value.filter(p=> p.name.toLowerCase().includes(kw))
+            //调用封装好的过滤函数
+            return getFilterProductList(
+                productList.value,
+                keyword.value,
+                category.value,
+                priceMax.value,
+                isDesc.value
+            )
         })
 
         return {
-            productList,
             keyword,
+            category,
+            priceMax,
+            isDesc,
             filteredProducts
         }
     }

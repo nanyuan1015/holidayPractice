@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>零食商品卡片 案例二</title>
+    <title>零食商品卡片 案例三</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <style>
         .toolbar {
@@ -22,6 +22,11 @@
             border:1px solid #ccc;
             padding:12px;
             border-radius:8px;
+            cursor: pointer;
+        }
+        /* 卡片选中高亮 */
+        .card.active{
+            border:3px solid #2b78e4;
         }
         .card img{
             width:100%;
@@ -37,39 +42,41 @@
 </head>
 <body>
     <div id="app">
-        <h2>零食商品列表【案例二：类别、价格过滤与排序】</h2>
+        <h2>零食商品列表【案例三：回车搜索、选中高亮与草稿暂存】</h2>
         <div class="toolbar">
-            <input v-model="keyword" placeholder="输入商品名称搜索"/>
-
-            <!--分类下拉 -->
+            <!-- 移除v-model.lazy，回车事件手动赋值realKeyword -->
+            <input
+                v-model.trim="inputKeyword"
+                @keyup.enter="confirmSearch"
+                placeholder="输入商品名称，按下回车搜索"
+            >
             <select v-model="category">
                 <option value="all">全部分类</option>
                 <option value="零食">零食</option>
             </select>
-
-            <!--价格上限滑块 -->
             <label>
                 价格上限：
                 <input type="range" min="0" max="30" step="0.5" v-model.number="priceMax">
                 <span>{{ priceMax >=30 ? '不限' : priceMax }}</span>
             </label>
-
             <label>
                 <input type="checkbox" v-model="isDesc">价格降序
             </label>
-
-            <p v-show="keyword">共{{ filteredProducts.length }}件结果</p>
+            <p v-show="realKeyword">共{{ filteredProducts.length }}件结果</p>
         </div>
 
         <div class="tip-empty" v-if="filteredProducts.length === 0">没有找到相关产品</div>
 
         <div class="container">
+            <!-- ✅使用item.id作为key，不要用index！图片读取item.img属性 -->
             <div
                 class="card"
-                v-for="(item,index) in filteredProducts"
-                :key="index"
+                :class="{active: selectedName === item.name}"
+                v-for="item in filteredProducts"
+                :key="item.id"
+                @click="handleCardClick(item)"
             >
-                <img :src="`${index+1}.png`" alt="零食图">
+                <img :src="item.img" alt="零食图">
                 <h4>{{item.name}}</h4>
                 <p>类别：{{item.category}}</p>
                 <p>单价：{{item.unitPrice}}元</p>
@@ -79,19 +86,20 @@
         </div>
     </div>
 <script>
-const { createApp, ref, computed } = Vue;
+const { createApp, ref, computed, watch } = Vue;
 
+// ✅每个商品新增id、img字段，图片与商品绑定，不再依赖数组下标
 const rawProducts = [
-  { name: "芝士饼干", category: "零食", unitPrice: 12.44, quantity: 1 },
-  { name: "鱼肉薯条", category: "零食", unitPrice: 7.1, quantity: 2 },
-  { name: "咸蛋黄锅巴", category: "零食", unitPrice: 14.22, quantity: 1 },
-  { name: "膜片", category: "零食", unitPrice: 1.00, quantity: 1 },
-  { name: "芝士火鸡面", category: "零食", unitPrice: 5.2, quantity: 4 },
-  { name: "薯条", category: "零食", unitPrice: 17.99, quantity: 1 },
-  { name: "薯片", category: "零食", unitPrice: 8.9, quantity: 2 },
-  { name: "炭烤腰果", category: "零食", unitPrice: 25.30, quantity: 1 },
-  { name: "麻薯", category: "零食", unitPrice: 10.70, quantity: 1 },
-  { name: "鲜花饼", category: "零食", unitPrice: 9.90, quantity: 1 }
+  { id:1, name: "芝士饼干", category: "零食", unitPrice: 12.44, quantity: 1, img:"1.png" },
+  { id:2, name: "鱼肉薯条", category: "零食", unitPrice: 7.1, quantity: 2, img:"2.png" },
+  { id:3, name: "咸蛋黄锅巴", category: "零食", unitPrice: 14.22, quantity: 1, img:"3.png" },
+  { id:4, name: "膜片", category: "零食", unitPrice: 1.00, quantity: 1, img:"4.png" },
+  { id:5, name: "芝士火鸡面", category: "零食", unitPrice: 5.2, quantity: 4, img:"5.png" },
+  { id:6, name: "薯条", category: "零食", unitPrice: 17.99, quantity: 1, img:"6.png" },
+  { id:7, name: "薯片", category: "零食", unitPrice: 8.9, quantity: 2, img:"7.png" },
+  { id:8, name: "炭烤腰果", category: "零食", unitPrice: 25.30, quantity: 1, img:"8.png" },
+  { id:9, name: "麻薯", category: "零食", unitPrice: 10.70, quantity: 1, img:"9.png" },
+  { id:10, name: "鲜花饼", category: "零食", unitPrice: 9.90, quantity: 1, img:"10.png" }
 ];
 
 //打印报告函数
@@ -130,22 +138,17 @@ const printReport = (productList) => {
 };
 printReport(rawProducts);
 
-// 📌模拟composable：封装过滤排序逻辑（对应老师useProductFilter）
+//模拟composable封装过滤排序逻辑（延续案例二）
 function getFilterProductList(list, keyword, category, priceMax, isDesc){
-    //拷贝原数组，不污染原始数据
     let arr = [...list];
-    //关键词过滤
     const kw = keyword.trim().toLowerCase();
     if(kw){
         arr = arr.filter(p=> p.name.toLowerCase().includes(kw))
     }
-    //分类过滤
     if(category !== 'all'){
         arr = arr.filter(p=> p.category === category)
     }
-    //价格上限过滤
     arr = arr.filter(p=> p.unitPrice <= priceMax);
-    //排序
     arr.sort((a,b)=>{
         return isDesc ? b.unitPrice - a.unitPrice : a.unitPrice - b.unitPrice
     })
@@ -155,29 +158,72 @@ function getFilterProductList(list, keyword, category, priceMax, isDesc){
 createApp({
     setup(){
         const productList = ref(rawProducts);
-        //筛选状态
-        const keyword = ref('');
+        //输入框临时文本
+        const inputKeyword = ref('');
+        //真正用于过滤的关键词（回车才赋值）
+        const realKeyword = ref('');
+
         const category = ref('all');
         const priceMax = ref(30);
         const isDesc = ref(false);
+        //选中卡片名称，用于高亮
+        const selectedName = ref(null);
+
+        //读取 localStorage，页面初始化恢复草稿状态
+        const storageStr = localStorage.getItem("snackCase3");
+        if(storageStr){
+            const obj = JSON.parse(storageStr);
+            inputKeyword.value = obj.inputKeyword ?? '';
+            realKeyword.value = obj.realKeyword ?? '';
+            category.value = obj.category ?? 'all';
+            priceMax.value = obj.priceMax ?? 30;
+            isDesc.value = obj.isDesc ?? false;
+            selectedName.value = obj.selectedName ?? null;
+        }
+
+        //回车确认搜索
+        const confirmSearch = ()=>{
+            realKeyword.value = inputKeyword.value.trim();
+        }
+
+        //卡片点击切换选中
+        const handleCardClick = (item)=>{
+            selectedName.value = selectedName.value === item.name ? null : item.name;
+        }
 
         const filteredProducts = computed(()=>{
-            //调用封装好的过滤函数
             return getFilterProductList(
                 productList.value,
-                keyword.value,
+                realKeyword.value,
                 category.value,
                 priceMax.value,
                 isDesc.value
             )
         })
 
+        //watch侦听全部筛选状态，保存到localStorage草稿暂存
+        watch([inputKeyword, realKeyword, category, priceMax, isDesc, selectedName], ()=>{
+            const saveData = {
+                inputKeyword: inputKeyword.value,
+                realKeyword: realKeyword.value,
+                category: category.value,
+                priceMax: priceMax.value,
+                isDesc: isDesc.value,
+                selectedName: selectedName.value
+            }
+            localStorage.setItem("snackCase3", JSON.stringify(saveData));
+        })
+
         return {
-            keyword,
+            inputKeyword,
+            realKeyword,
             category,
             priceMax,
             isDesc,
-            filteredProducts
+            selectedName,
+            filteredProducts,
+            confirmSearch,
+            handleCardClick
         }
     }
 }).mount('#app')
